@@ -50,7 +50,7 @@ public EdmEntityType(string namespaceName, string name, IEdmEntityType baseType,
 {% endhighlight %}
 
 For example:
-{% endhighlight %}
+{% highlight csharp %}
 EdmEntityType customer = new EdmEntityType("WebApiDocNS", "Customer", baseType: null, isAbstract: true, isOpen: true);
 model.AddElement(customer);
 {% endhighlight %}\
