@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "2.2 Abstract"
+title: "2.1 Abstract"
 description: "convention model builder"
 category: "2. Defining the model"
 ---
