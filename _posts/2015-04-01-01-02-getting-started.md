@@ -83,4 +83,4 @@ public static void Register(HttpConfiguration config)
 
 ### f. Start the OData service
 
-Start the OData service by running the project and open a browser to consume it. You should be able to get access to the service document at `http://host/service/` in which `http://host/service/` is the root path of your service. The metadata document can be accessed at `GET http://host/service/$metadata` and the products at `http://host/service/Products`.
+Start the OData service by running the project and open a browser to consume it. You should be able to get access to the service document at `http://host/service/` in which `http://host/service/` is the root path of your service. The metadata document can be accessed at `GET http://host/service/$metadata` and the products at `GET http://host/service/Products`.
