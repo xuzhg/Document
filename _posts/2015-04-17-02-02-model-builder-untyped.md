@@ -198,6 +198,7 @@ customers.AddNavigationTarget(ordersNavProp, orders);
 {% endhighlight %}
 
 It will generate the below metadata document:
+
 First, it will add a new item in the entity type as:
 {% highlight xml %}
 <EntityType Name="Customer">
@@ -205,7 +206,7 @@ First, it will add a new item in the entity type as:
     <NavigationProperty Name="Orders" Type="Collection(WebApiDocNS.Order)" />
 </EntityType>
 {% endhighlight %}
-Second, it will add a new item in the entity container for **Customers* entity set as:
+Second, it will add a new item in the entity container for **Customers** entity set as:
 {% highlight xml %}
 <EntitySet Name="Customers" EntityType="WebApiDocNS.Customer">
   <NavigationPropertyBinding Path="Orders" Target="Orders" />
@@ -214,7 +215,7 @@ Second, it will add a new item in the entity container for **Customers* entity s
 
 ### Function
 
-We defines two functions. One is bound, the other is unbound as:
+We define two functions. One is bound, the other is unbound as:
 {% highlight csharp %}
 IEdmTypeReference stringType = EdmCoreModel.Instance.GetPrimitive(EdmPrimitiveTypeKind.String, isNullable: false);
 IEdmTypeReference intType = EdmCoreModel.Instance.GetPrimitive(EdmPrimitiveTypeKind.Int32, isNullable: false);
@@ -239,7 +240,7 @@ It will generate the below metadata document:
 
 ### Action
 
-We defines two actions. One is bound, the other is unbound as:
+We define two actions. One is bound, the other is unbound as:
 {% highlight csharp %}
 EdmAction calculate = new EdmAction("WebApiDocNS", "CalculateOrderPrice", returnType: null, isBound: true, entitySetPathExpression: null);
 calculate.AddParameter("entity", new EdmEntityTypeReference(customer, false));
