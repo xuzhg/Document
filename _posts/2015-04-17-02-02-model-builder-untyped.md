@@ -5,14 +5,14 @@ description: "convention model builder"
 category: "2. Defining the model"
 ---
 
-As mentioned in previous section, to build Edm Model explicitly is to create an `IEdmModel` object directly using ODatalib API. The Edm model built by this method is called type-less model, or week type model.
+As mentioned in previous section, to build Edm Model explicitly is to create an `IEdmModel` object directly using ODatalib API. The Edm model built by this method is called **type-less model**, or **week type model**, or just **un-typed model**.
 Let's see how to build the customer-order business model. 
 
 ### Add Entity Type
 
-1. Basic Entity Type
+##### Basic Entity Type
 
-We can use `EdmEntityType` to define an Edm entity type as:
+We can use `EdmEntityType` to define an entity type as:
 {% highlight csharp %}
 EdmEntityType customer = new EdmEntityType("WebApiDocNS", "Customer");
 model.AddElement(customer);
@@ -28,13 +28,13 @@ It will generate the below metadata document:
     ......
 {% endhighlight %}
 
-2. Derived Entity type
+##### Derived Entity type
 
 We can set the base type in construct to define an derived entity type as:
 {% highlight csharp %}
 EdmEntityType vipCustomer = new EdmEntityType("WebApiDocNS", "vipCustomer", customer);
 model.AddElement(vipCustomer);
-{% endhighlight %}\
+{% endhighlight %}
 
 It will generate the below metadata document:
 {% highlight xml %}
@@ -42,9 +42,9 @@ It will generate the below metadata document:
     <EntityType Name="vipCustomer" BaseType="WebApiDocNS.Customer" />
 {% endhighlight %}
 
-3. Other Entity Type
+##### Other Entity Types
 
-we can call the following construct to set an entity type is abstract, or is open.
+We can call the following construct to set an entity type whether it is abstract or open.
 {% highlight csharp %}
 public EdmEntityType(string namespaceName, string name, IEdmEntityType baseType, bool isAbstract, bool isOpen);
 {% endhighlight %}
@@ -53,7 +53,7 @@ For example:
 {% highlight csharp %}
 EdmEntityType customer = new EdmEntityType("WebApiDocNS", "Customer", baseType: null, isAbstract: true, isOpen: true);
 model.AddElement(customer);
-{% endhighlight %}\
+{% endhighlight %}
 
 It will generate the below metadata document:
 {% highlight xml %}
