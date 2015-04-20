@@ -107,6 +107,7 @@ public enum Color
 {% endhighlight %}
 
 Here's the class heritance:
+
 ![](../img/02-01-customer-order.png)
 
 
