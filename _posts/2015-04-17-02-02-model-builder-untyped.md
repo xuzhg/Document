@@ -10,7 +10,7 @@ Let's see how to build the customer-order business model.
 
 ### Add Entity Type
 
-##### Basic Entity Type
+#### Basic Entity Type
 
 We can use `EdmEntityType` to define an entity type as:
 {% highlight csharp %}
@@ -28,9 +28,9 @@ It will generate the below metadata document:
     ......
 {% endhighlight %}
 
-##### Derived Entity type
+#### Derived Entity type
 
-We can set the base type in construct to define an derived entity type as:
+We can set the base type in construct to define a derived entity type as:
 {% highlight csharp %}
 EdmEntityType vipCustomer = new EdmEntityType("WebApiDocNS", "vipCustomer", customer);
 model.AddElement(vipCustomer);
@@ -42,7 +42,7 @@ It will generate the below metadata document:
     <EntityType Name="vipCustomer" BaseType="WebApiDocNS.Customer" />
 {% endhighlight %}
 
-##### Other Entity Types
+#### Other Entity Types
 
 We can call the following construct to set an entity type whether it is abstract or open.
 {% highlight csharp %}
@@ -61,4 +61,50 @@ It will generate the below metadata document:
     <EntityType Name="Customer" Abstract="true" OpenType="true" />
 {% endhighlight %}
 
+### Add Complex Type
 
+#### Basic Complex Type
+
+We can use `EdmComplexType` to define a complex type as:
+{% highlight csharp %}
+EdmComplexType address = new EdmComplexType("WebApiDocNS", "Address");
+model.AddElement(address);
+{% endhighlight %}
+
+It will generate the below metadata document:
+{% highlight xml %}
+    <Complex Name="Address" />
+    ......
+{% endhighlight %}
+
+#### Derived Complex type
+
+We can set the base type in construct to define a derived complex type as:
+{% highlight csharp %}
+EdmComplexType subAddress = new EdmComplexType("WebApiDocNS", "SubAddress", address);
+model.AddElement(subAddress);
+{% endhighlight %}
+
+It will generate the below metadata document:
+{% highlight xml %}
+    ......
+    <ComplexType Name="SubAddress" BaseType="WebApiDocNS.Address" />
+{% endhighlight %}
+
+#### Other Complex Types
+We can call the following construct to set a complex type whether it is abstract or open.
+{% highlight csharp %}
+public EdmComplexType(string namespaceName, string name, IEdmComplexType baseType, bool isAbstract, bool isOpen);
+{% endhighlight %}
+
+For example:
+{% highlight csharp %}
+EdmComplexType address = new EdmComplexType("WebApiDocNS", "Address", baseType: null, isAbstract: true, isOpen: true);
+model.AddElement(address);
+{% endhighlight %}
+
+It will generate the below metadata document:
+{% highlight xml %}
+    ......
+    <ComplexType Name="Address" Abstract="true" OpenType="true" />
+{% endhighlight %}
