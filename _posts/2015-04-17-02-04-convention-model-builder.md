@@ -5,29 +5,28 @@ description: "convention model builder"
 category: "2. Defining the model"
 ---
 
-In the previous two section, we walk you through the required aspects to build an Edm Model by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** and leveraging WebApi OData’s ODataModelBuilder’s fluent API. 
+In the previous two sections, we walk you through the required aspects to build an Edm Model by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** or leveraging WebApi OData’s ODataModelBuilder’s fluent API. 
 
-Obvious, there are many lines you should code to develop an simple customer-order business model. However, Web API OData also provides a very simple method by using `ODataConventionModelBuilder` to do the same thing. It's called convention model builder and can extremely reduce your workload.
+Obvious, there are many lines you should code to develop a simple *Customer-Order* business model. However, Web API OData also provides a simple method by using `ODataConventionModelBuilder` to do the same thing. It's called convention model builder and can extremely reduce your workload.
  
 
-`ODataConventionModelBuilder` uses a set of pre-defined rules (called conventions) to to help model builder to identify Edm types, keys, association etc automatically , and add them into the finial Edm model. This section will go through all conventions used in `ODataConventionModelBuilder`.
+Convention model builder uses a set of pre-defined rules (called conventions) to help model builder identify Edm types, keys, associations, etc automatically, and add them into the final Edm model. In this section, we will go through all conventions used in convention model builder.
 
 ### CLR Models
 
-We also use the customer-order business CLR model present in abstract section.
-
+We also use the *Customer-Order* business model present in abstract section.
 
 ### Build the Edm Model
 
-The following codes can add all related entity types, complex types, enum type and the corresponding entity sets:
+The following codes can add all related entity types, complex types, enum type and the corresponding entity sets in to Edm model:
 {% highlight csharp %}
 public static IEdmModel GetConventionModel()
 {
-	var builder = new ODataConventionModelBuilder();
-	builder.EntitySet<Customer>("Customers");
-	builder.EntitySet<Order>("Orders");
+   var builder = new ODataConventionModelBuilder();
+   builder.EntitySet<Customer>("Customers");
+   builder.EntitySet<Order>("Orders");
 
-	return builder.GetEdmModel();
+   return builder.GetEdmModel();
 }
 {% endhighlight %}
 
@@ -80,12 +79,12 @@ It will generate the below metadata document:
 </edmx:Edmx>
 {% endhighlight %}
 
-Note: let's omit the function/action building because it's same as non-convention model builder.
+**Note**: We omit the **function/action** building because it's same as non-convention model builder.
 
 ### Conventions
 
-Wow, how the convention model builder do that! Actually, convention model builder uses a set of pre-defined rules (called conventions) to achieve this. 
-If you open the source code for [`ODataConventionModelBuilder`](https://github.com/OData/WebApi/blob/master/OData/src/System.Web.OData/OData/Builder/ODataConventionModelBuilder.cs). You can find the following codes at the beginning of the `ODataConventionModelBuilder` class:
+Wow, how the convention model builder do that! Actually, convention model builder uses a set of **pre-defined** rules (called conventions) to achieve this. 
+If you open the source code for [`ODataConventionModelBuilder`](https://github.com/OData/WebApi/blob/master/OData/src/System.Web.OData/OData/Builder/ODataConventionModelBuilder.cs), You can find the following codes at the beginning of the `ODataConventionModelBuilder` class:
 {% highlight csharp %}
 private static readonly List<IConvention> _conventions = new List<IConvention>
 {
@@ -119,7 +118,7 @@ private static readonly List<IConvention> _conventions = new List<IConvention>
 	new FunctionLinkGenerationConvention(),
 };
 {% endhighlight %}
-Where lists all conventions wrapped in convention model builder. However, in `ODataConventionModelBuilder`, there are some conventions which can't be clearly listed as a convention. Let's walk through these conventions one by one with some relevant attributes & annotations to illustrate the convention model builder.
+Where lists the conventions wrapped in convention model builder. However, in `ODataConventionModelBuilder`, there are some conventions which can't be clearly listed as a convention. Let's walk you through these conventions one by one with some relevant attributes & annotations to illustrate the convention model builder.
 
 #### Type Inheritance Identify Convention
 
@@ -129,7 +128,7 @@ For example:
 {% highlight csharp %}
 public class Base
 {
-	public int Id { get; set; }
+    public int Id { get; set; }
 }
 
 public class Derived : Base
@@ -141,9 +140,9 @@ By using convention builder:
 {% highlight csharp %}
 public static IEdmModel GetEdmModel()
 {
-	ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
-	builder.EntityType<Base>();
-	return builder.GetEdmModel()
+    ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
+    builder.EntityType<Base>();
+    return builder.GetEdmModel()
 }
 {% endhighlight %}
 It will generate the below entity type in the resulted EDM document:
@@ -162,9 +161,9 @@ If you change the model builder as:
 {% highlight csharp %}
 public static IEdmModel GetEdmModel()
 {
-	ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
-	builder.EntityType<Derived>();
-	return builder.GetEdmModel()
+    ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
+    builder.EntityType<Derived>();
+    return builder.GetEdmModel()
 }
 {% endhighlight %}
 It will generate the below entity type in the resulted EDM document:
@@ -206,7 +205,7 @@ Rule: If one and only one property’s name is ‘Id’ or ‘`<entity class nam
 {% highlight csharp %}
 public abstract class Base
 {
-	public int BaseId { get; set; }
+    public int BaseId { get; set; }
 }
 {% endhighlight %}
 
@@ -229,7 +228,7 @@ public class Trip
 {
     [Key]
     public int TripNum { get; set; }	
-	public int Id { get; set; }
+    public int Id { get; set; }
 }
 {% endhighlight %}
 
@@ -251,9 +250,9 @@ Rule-1: Create a class without any ‘id’ or ‘<class name>id’ or [`KeyAttr
 {% highlight csharp %}
 public class City
 {
-	public string Name { get; set; }
-	public string CountryRegion { get; set; }
-	public string Region { get; set; }
+    public string Name { get; set; }
+    public string CountryRegion { get; set; }
+    public string Region { get; set; }
 }
 {% endhighlight %}
 
@@ -263,11 +262,12 @@ Rule-2:	Add [ComplexType] attribute to a model class: it will remove ‘id’ or
 [ComplexType]
 public class PairItem
 {
-	public int Id { get; set; }
-	public string Value { get; set; }
+    public int Id { get; set; }
+    public string Value { get; set; }
 }
 {% endhighlight %}
 
+Then, the above two types wil be built as `Complex Type`.
 
 #### DataContract & DataMember
 Rule: If using DataContract or DataMember, only property with [DataMember] attribute will be added into Edm model.
@@ -276,12 +276,12 @@ Rule: If using DataContract or DataMember, only property with [DataMember] attri
 [DataContract]
 public class Trip
 {
-	[DataMember]
-	[Key]
-	public int TripNum { get; set; }
-	public Guid? ShareId { get; set; }  // will be eliminated
-	[DataMember]
-	public string Name { get; set; }
+    [DataMember]
+    [Key]
+    public int TripNum { get; set; }
+    public Guid? ShareId { get; set; }  // will be eliminated
+    [DataMember]
+    public string Name { get; set; }
 }
 {% endhighlight %}
 
@@ -331,13 +331,13 @@ For example, the above if `Trip` class is changed to the below, it generates exa
 [DataContract]
 public class Trip
 {
-	[DataMember]
-	[Key]
-	public int TripNum { get; set; }
-	[NotMapped]
-	public Guid? ShareId { get; set; }
-	[DataMember]
-	public string Name { get; set; }
+    [DataMember]
+    [Key]
+    public int TripNum { get; set; }
+    [NotMapped]
+    public Guid? ShareId { get; set; }
+    [DataMember]
+    public string Name { get; set; }
 }	
 {% endhighlight %}
 
@@ -361,12 +361,12 @@ Rule: The property with [Required] attribute will be non-nullable.
 
 public class Trip
 {
-	[Key]
-	public int TripNum { get; set; }
-	[NotMapped]
-	public Guid? ShareId { get; set; }
-	[Required]
-	public string Name { get; set; }
+    [Key]
+    public int TripNum { get; set; }
+    [NotMapped]
+    public Guid? ShareId { get; set; }
+    [Required]
+    public string Name { get; set; }
 }
 {% endhighlight %}
 
@@ -382,7 +382,6 @@ Then the result has `Nullable=”false”` for `Name` property:
 </EntityType>
 {% endhighlight %}
 
-
 #### ConcurrencyCheck Attribute Convention
 Rule: It can mark one or more properties for doing optimistic concurrency check on entity updates.
 
@@ -390,11 +389,11 @@ Rule: It can mark one or more properties for doing optimistic concurrency check 
 
 public class Trip
 {
-	[Key]
-	public int TripNum { get; set; }
-	public int Id { get; set; }
-	[ConcurrencyCheck]
-	public string UpdateVersion { get; set; }
+    [Key]
+    public int TripNum { get; set; }
+    public int Id { get; set; }
+    [ConcurrencyCheck]
+    public string UpdateVersion { get; set; }
 }
 {% endhighlight %}
 
@@ -411,7 +410,6 @@ The expected result should be like the below:
 </EntityType>
 {% endhighlight %}
 
-
 #### Timestamp Attribute Convention
 Rule: It's same as [ConcurrencyCheck].
 
@@ -419,11 +417,11 @@ Rule: It's same as [ConcurrencyCheck].
 
 public class Trip
 {
-	[Key]
-	public int TripNum { get; set; }
-	public int Id { get; set; }
-	[Timestamp]
-	public string UpdateVersion { get; set; }
+    [Key]
+    public int TripNum { get; set; }
+    public int Id { get; set; }
+    [Timestamp]
+    public string UpdateVersion { get; set; }
 }
 {% endhighlight %}
 
@@ -450,11 +448,11 @@ Rule: Property marked with [NonFilterable] or [NotFilterable] will not support `
 {% highlight csharp %}
 public class QueryLimitCustomer
 {
-	public int Id { get; set; }
+    public int Id { get; set; }
 
-	[NonFilterable]
-	[NotFilterable]
-	public string Title { get; set; }
+    [NonFilterable]
+    [NotFilterable]
+    public string Title { get; set; }
 }
 {% endhighlight %}
 
@@ -471,11 +469,11 @@ Rule: Property marked with [NotSortable] or [Unsortable] will not support `$orde
 {% highlight csharp %}
 public class QueryLimitCustomer
 {
-	public int Id { get; set; }
+    public int Id { get; set; }
 
-	[NotSortable]
-	[Unsortable]	
-	public string Title { get; set; }
+    [NotSortable]
+    [Unsortable]	
+    public string Title { get; set; }
 }
 {% endhighlight %}
 
@@ -492,10 +490,10 @@ Rule: Property marked with [NotNavigable] will not support `$select` query optio
 {% highlight csharp %}
 public class QueryLimitCustomer
 {
-	public int Id { get; set; }
+    public int Id { get; set; }
 
-	[NotNavigable]	
-	public Address address { get; set; }
+    [NotNavigable]	
+    public Address address { get; set; }
 }
 {% endhighlight %}
 
@@ -512,10 +510,10 @@ Rule: Property marked with [NotExpandable] will not support `$expand` query opti
 {% highlight csharp %}
 public class QueryLimitCustomer
 {
-	public int Id { get; set; }
+    public int Id { get; set; }
 
-	[NotExpandable]	
-	public ICollection<QueryLimitOrder> Orders { get; set; }
+    [NotExpandable]	
+    public ICollection<QueryLimitOrder> Orders { get; set; }
 }
 {% endhighlight %}
 
@@ -532,10 +530,10 @@ Rule: Property marked with [NotCountable] will not support `$count` query option
 {% highlight csharp %}
 public class QueryLimitCustomer
 {
-	public int Id { get; set; }
+    public int Id { get; set; }
 
-	[NotCountable]	
-	public ICollection<Address> Addresses { get; set; }
+    [NotCountable]	
+    public ICollection<Address> Addresses { get; set; }
 }
 {% endhighlight %}
 
@@ -554,18 +552,18 @@ Rule: Property marked with [ForeignKey] will be used to build referential constr
 {% highlight csharp %}
 public class ForeignCustomer
 {
-	public int ForeignCustomerId { get; set; }
-	public int OtherCustomerKey { get; set; }
-	public IList<ForeignOrder> Orders { get; set; }
+    public int ForeignCustomerId { get; set; }
+    public int OtherCustomerKey { get; set; }
+    public IList<ForeignOrder> Orders { get; set; }
 }
 
 public class ForeignOrder
 {
-	public int ForeignOrderId { get; set; }
-	public int CustomerId { get; set; }
+    public int ForeignOrderId { get; set; }
+    public int CustomerId { get; set; }
 
-	[ForeignKey("CustomerId")]
-	public ForeignCustomer Customer { get; set; }
+    [ForeignKey("CustomerId")]
+    public ForeignCustomer Customer { get; set; }
 }
 {% endhighlight %}
 
@@ -587,11 +585,11 @@ You will get the following result:
 {% highlight csharp %}
 public class ForeignOrder
 {
-	public int ForeignOrderId { get; set; }
+    public int ForeignOrderId { get; set; }
 	
-	[ForeignKey("Customer")]
-	public int CustomerId { get; set; }
-	public ForeignCustomer Customer { get; set; }
+    [ForeignKey("Customer")]
+    public int CustomerId { get; set; }
+    public ForeignCustomer Customer { get; set; }
 }
 {% endhighlight %}
 
@@ -604,19 +602,19 @@ Rule: Property marked with [ActionOnDelete] will be used to build referential co
 {% highlight csharp %}
 public class ForeignCustomer
 {
-	public int ForeignCustomerId { get; set; }
-	public int OtherCustomerKey { get; set; }
-	public IList<ForeignOrder> Orders { get; set; }
+    public int ForeignCustomerId { get; set; }
+    public int OtherCustomerKey { get; set; }
+    public IList<ForeignOrder> Orders { get; set; }
 }
 
 public class ForeignOrder
 {
-	public int ForeignOrderId { get; set; }
-	public int CustomerId { get; set; }
+    public int ForeignOrderId { get; set; }
+    public int CustomerId { get; set; }
 
-	[ForeignKey("CustomerId")]
-	[ActionOnDelete(EdmOnDeleteAction.Cascade)]
-	public ForeignCustomer Customer { get; set; }
+    [ForeignKey("CustomerId")]
+    [ActionOnDelete(EdmOnDeleteAction.Cascade)]
+    public ForeignCustomer Customer { get; set; }
 }
 {% endhighlight %}
 
@@ -649,15 +647,15 @@ Rule: A convention used to discover foreign key properties if there is no any fo
 {% highlight csharp %}  
 public class PrincipalEntity
 {
-	public string Id { get; set; }
+    public string Id { get; set; }
 }
 
 public class DependentEntity
 {
-	public int Id { get; set; }
+    public int Id { get; set; }
 
-	public string PrincipalEntityId { get; set; }
-	public PrincipalEntity Principal { get; set; }
+    public string PrincipalEntityId { get; set; }
+    public PrincipalEntity Principal { get; set; }
 }		  
 {% endhighlight %}
 
