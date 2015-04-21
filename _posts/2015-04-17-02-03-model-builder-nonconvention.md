@@ -10,7 +10,7 @@ Let's see how to build the customer-order business model by `ODataModelBuilder`.
 
 ### CLR Models
 
-non-convention model builder is based on CLR classes to build the Edm Model. The customer-oder business CLR classes are present in ![](./2015-04-17-02-01-model-builder-abstract.md)
+Non-convention model builder is based on CLR classes to build the Edm Model. The customer-oder business CLR classes are present in abstract section.
 
 ### Enum Type
 
@@ -51,7 +51,7 @@ It will generate the below metadata document:
 
 #### Derived Complex type
 
-The following codes are used to add a complex type:
+The following codes are used to add a derived complex type:
 {% highlight csharp %}
 var subAddress = builder.ComplexType<SubAddress>().DerivesFrom<Address>();
 subAddress.Property(s => s.Street);
@@ -81,18 +81,18 @@ It will generate the below metadata document:
 
 #### Open Complex type
 
-In order to build an open complex type, you should change the CLR class by adding an `IDictionary<string, object>` property, the property name doesn't matter. For example:
+In order to build an open complex type, you should change the CLR class by adding an `IDictionary<string, object>` property, the property name can be any name. For example:
 
 {% highlight csharp %}
 public class Address
 {
     public string Country { get; set; }
     public string City { get; set; }
-    public IDictionary<string, object> Dynamics { get; set; }
+    **public IDictionary<string, object> Dynamics { get; set; }**
 }
 {% endhighlight %}
 
-Then you can build the open complex type as:
+Then you can build the open complex type by call `HasDynamicProperties()`:
 {% highlight csharp %}
 var address = builder.ComplexType<Address>();
 address.Property(a => a.Country);
@@ -146,7 +146,7 @@ It will generate the below metadata document:
 
 #### Abstract Open type
 
-The following codes are used to add an abstract complex type:
+The following codes are used to add an abstract entity type:
 {% highlight csharp %}
 builder.EntityType<Customer>().Abstract();
 ......
@@ -162,7 +162,7 @@ It will generate the below metadata document:
 
 #### Open Entity type
 
-In order to build an open entity type, you should change the CLR class by adding an `IDictionary<string, object>` property, while the property name doesn't matter. For example:
+In order to build an open entity type, you should change the CLR class by adding an `IDictionary<string, object>` property, while the property name can be any name. For example:
 
 {% highlight csharp %}
 public class Customer
@@ -170,7 +170,7 @@ public class Customer
     public int CustomerId { get; set; }
     public Address Location { get; set; }
     public IList<Order> Orders { get; set; }
-    public IDictionary<string, object> Dynamics { get; set; }
+    **public IDictionary<string, object> Dynamics { get; set; }**
 }
 {% endhighlight %}
 
@@ -220,7 +220,7 @@ Besides, you can call `Singleton<T>()` to add singleton into entity container.
 
 ### Function
 
-It's very simple to build function (bound & unbound) in Web API OData. The following codes define two functions. The first is bound to customer, the second is unbound.
+It's very simple to build function (bound & unbound) in Web API OData. The following codes define two functions. The first is bind to customer, the second is unbound.
 {% highlight csharp %}
 var function = customer.Function("BoundFunction").Returns<string>();
 function.Parameter<int>("value");
@@ -253,7 +253,7 @@ Besides, Web API OData will automatically add function imports for all unbound f
 
 ### Action
 
-Same as function, it's also very simple to build action (bound & unbound) in Web API OData. The following codes define two actions. The first is bound to collection of customer, the second is unbound.
+Same as function, it's also very simple to build action (bound & unbound) in Web API OData. The following codes define two actions. The first is bind to collection of customer, the second is unbound.
 {% highlight csharp %}
 var action = customer.Collection.Action("BoundAction");
 action.Parameter<int>("value");
@@ -298,11 +298,11 @@ public static IEdmModel GetEdmModel()
 	color.Member(Color.Green);
 
 	// complex type
-	//var address = builder.ComplexType<Address>().Abstract();
+	// var address = builder.ComplexType<Address>().Abstract();
 	var address = builder.ComplexType<Address>();
 	address.Property(a => a.Country);
 	address.Property(a => a.City);
-	//address.HasDynamicProperties(a => a.Dynamics);
+	// address.HasDynamicProperties(a => a.Dynamics);
 
 	var subAddress = builder.ComplexType<SubAddress>().DerivesFrom<Address>();
 	subAddress.Property(s => s.Street);
@@ -313,7 +313,7 @@ public static IEdmModel GetEdmModel()
 	customer.HasKey(c => c.CustomerId);
 	customer.ComplexProperty(c => c.Location);
 	customer.HasMany(c => c.Orders);
-	customer.HasDynamicProperties(c => c.Dynamics);
+	// customer.HasDynamicProperties(c => c.Dynamics);
 
 	var order = builder.EntityType<Order>();
 	order.HasKey(o => o.OrderId);
@@ -380,7 +380,6 @@ And the final XML will be:
       </EnumType>
     </Schema>
     <Schema Namespace="Default" xmlns="http://docs.oasis-open.org/odata/ns/edm">
-
       <Function Name="BoundFunction" IsBound="true">
         <Parameter Name="bindingParameter" Type="WebApiDocNS.Customer" />
         <Parameter Name="value" Type="Edm.Int32" Nullable="false" />
