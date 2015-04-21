@@ -5,435 +5,682 @@ description: "convention model builder"
 category: "2. Defining the model"
 ---
 
-In Microsoft ASP.NET Web API 2.2 for OData v4.0 (WebApi OData), there are several ways to build an EDM model: by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** to build an IEdmModel object, or leveraging WebApi OData’s ODataModelBuilder’s fluent API, but the recommended is WebApi OData’s ODataConventionModelBuilder.
+In the previous two section, we walk you through the required aspects to build an Edm Model by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** and leveraging WebApi OData’s ODataModelBuilder’s fluent API. 
 
-Conventions are a set of pre-defined rules that help .NET model classes describe an EDM model’s shape. After that, attributes can be applied on .NET model classes to further describe or change the model’s detailed aspects. This post  talks about the conventions that are used by ODataConventionModelBuilder, together with some relevant attributes & annotations.
+Obvious, there are many lines you should code to develop an simple customer-order business model. However, Web API OData also provides a very simple method by using `ODataConventionModelBuilder` to do the same thing. It's called convention model builder and can extremely reduce your workload.
+ 
 
-### EntityType
-Here is a model class:
+`ODataConventionModelBuilder` uses a set of pre-defined rules (called conventions) to to help model builder to identify Edm types, keys, association etc automatically , and add them into the finial Edm model. This section will go through all conventions used in `ODataConventionModelBuilder`.
 
+### CLR Models
+
+We also use the customer-order business CLR model present in abstract section.
+
+
+### Build the Edm Model
+
+The following codes can add all related entity types, complex types, enum type and the corresponding entity sets:
 {% highlight csharp %}
+public static IEdmModel GetConventionModel()
+{
+	var builder = new ODataConventionModelBuilder();
+	builder.EntitySet<Customer>("Customers");
+	builder.EntitySet<Order>("Orders");
 
-    public class Trip
-    {
-        public int TripId { get; set; }
-        public Guid? ShareId { get; set; }
-        public string Name { get; set; }
-    }
+	return builder.GetEdmModel();
+}
+{% endhighlight %}
+
+It will generate the below metadata document:
+{% highlight xml %}
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:DataServices>
+    <Schema Namespace="WebApiDocNS" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      <EntityType Name="Customer" OpenType="true">
+        <Key>
+          <PropertyRef Name="CustomerId" />
+        </Key>
+        <Property Name="CustomerId" Type="Edm.Int32" Nullable="false" />
+        <Property Name="Location" Type="WebApiDocNS.Address" />
+        <NavigationProperty Name="Orders" Type="Collection(WebApiDocNS.Order)" />
+      </EntityType>
+      <EntityType Name="Order">
+        <Key>
+          <PropertyRef Name="OrderId" />
+        </Key>
+        <Property Name="OrderId" Type="Edm.Int32" Nullable="false" />
+        <Property Name="Token" Type="Edm.Guid" Nullable="false" />
+      </EntityType>
+      <ComplexType Name="Address" OpenType="true">
+        <Property Name="Country" Type="Edm.String" />
+        <Property Name="City" Type="Edm.String" />
+      </ComplexType>
+      <ComplexType Name="SubAddress" BaseType="WebApiDocNS.Address" OpenType="true">
+        <Property Name="Street" Type="Edm.String" />
+      </ComplexType>
+      <EntityType Name="VipCustomer" BaseType="WebApiDocNS.Customer" OpenType="true">
+        <Property Name="FavoriteColor" Type="WebApiDocNS.Color" Nullable="false" />
+      </EntityType>
+      <EnumType Name="Color">
+        <Member Name="Red" Value="0" />
+        <Member Name="Blue" Value="1" />
+        <Member Name="Green" Value="2" />
+      </EnumType>
+    </Schema>
+    <Schema Namespace="Default" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      <EntityContainer Name="Container">
+        <EntitySet Name="Customers" EntityType="WebApiDocNS.Customer">
+          <NavigationPropertyBinding Path="Orders" Target="Orders" />
+        </EntitySet>
+        <EntitySet Name="Orders" EntityType="WebApiDocNS.Order" />
+      </EntityContainer>
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>
+{% endhighlight %}
+
+Note: let's omit the function/action building because it's same as non-convention model builder.
+
+### Conventions
+
+Wow, how the convention model builder do that! Actually, convention model builder uses a set of pre-defined rules (called conventions) to achieve this. 
+If you open the source code for [`ODataConventionModelBuilder`](https://github.com/OData/WebApi/blob/master/OData/src/System.Web.OData/OData/Builder/ODataConventionModelBuilder.cs). You can find the following codes at the beginning of the `ODataConventionModelBuilder` class:
+{% highlight csharp %}
+private static readonly List<IConvention> _conventions = new List<IConvention>
+{
+	// type and property conventions (ordering is important here).
+	new AbstractTypeDiscoveryConvention(),
+	new DataContractAttributeEdmTypeConvention(),
+	new NotMappedAttributeConvention(), // NotMappedAttributeConvention has to run before EntityKeyConvention
+	new DataMemberAttributeEdmPropertyConvention(),
+	new RequiredAttributeEdmPropertyConvention(),
+	new ConcurrencyCheckAttributeEdmPropertyConvention(),
+	new TimestampAttributeEdmPropertyConvention(),
+	new KeyAttributeEdmPropertyConvention(), // KeyAttributeEdmPropertyConvention has to run before EntityKeyConvention
+	new EntityKeyConvention(),
+	new ComplexTypeAttributeConvention(), // This has to run after Key conventions, basically overrules them if there is a ComplexTypeAttribute
+	new IgnoreDataMemberAttributeEdmPropertyConvention(),
+	new NotFilterableAttributeEdmPropertyConvention(),
+	new NonFilterableAttributeEdmPropertyConvention(),
+	new NotSortableAttributeEdmPropertyConvention(),
+	new UnsortableAttributeEdmPropertyConvention(),
+	new NotNavigableAttributeEdmPropertyConvention(),
+	new NotExpandableAttributeEdmPropertyConvention(),
+	new NotCountableAttributeEdmPropertyConvention(),
+
+	// INavigationSourceConvention's
+	new SelfLinksGenerationConvention(),
+	new NavigationLinksGenerationConvention(),
+	new AssociationSetDiscoveryConvention(),
+
+	// IEdmFunctionImportConventions's
+	new ActionLinkGenerationConvention(),
+	new FunctionLinkGenerationConvention(),
+};
+{% endhighlight %}
+Where lists all conventions wrapped in convention model builder. However, in `ODataConventionModelBuilder`, there are some conventions which can't be clearly listed as a convention. Let's walk through these conventions one by one with some relevant attributes & annotations to illustrate the convention model builder.
+
+#### Type Inheritance Identify Convention
+
+Rule: Only derived types can be walked.
+
+For example:
+{% highlight csharp %}
+public class Base
+{
+	public int Id { get; set; }
+}
+
+public class Derived : Base
+{
+}
 {% endhighlight %}
 
 By using convention builder:
-
 {% highlight csharp %}
-
-            ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
-            builder.Namespace = "ODataSamples.WebApiService.Models";
-            builder.ContainerName = "DefaultContainer";
-            builder.EntityType<Trip>();
-            builder.GetEdmModel()
+public static IEdmModel GetEdmModel()
+{
+	ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
+	builder.EntityType<Base>();
+	return builder.GetEdmModel()
+}
 {% endhighlight %}
-
 It will generate the below entity type in the resulted EDM document:
-
 {% highlight xml %}
-
-      <EntityType Name="Trip">
-        <Key>
-          <PropertyRef Name="TripId" />
-        </Key>
-        <Property Name="TripId" Type="Edm.Int32" Nullable="false" />
-        <Property Name="ShareId" Type="Edm.Guid" />
-        <Property Name="Name" Type="Edm.String" />
-      </EntityType>
+<EntityType Name="Base">
+  <Key>
+    <PropertyRef Name="Id" />
+  </Key>
+  <Property Name="Id" Type="Edm.Int32" Nullable="false" />
+</EntityType>
+<EntityType Name="Derived" BaseType="WebApiDocNS.Base" />
 {% endhighlight %}
 
-Convention: any .NET class with one or more key properties can be an entity type. (What makes a key property? Please continue reading)
-
-
-### Entity key
-
-In a model class, if one and only one property’s name is ‘Id’ or ‘`<entity class name>`Id’ (case insensitive), it becomes entity key property.
-
-### Key attribute
-The [`KeyAttribute`] specifies key property, it forces a property without 'id' to be Key property:
+If you change the model builder as:
 
 {% highlight csharp %}
-
-    public class Trip    {
-        [Key]
-        public int TripNum { get; set; }
-        public Guid? ShareId { get; set; }
-        public string Name { get; set; }
-    }
+public static IEdmModel GetEdmModel()
+{
+	ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
+	builder.EntityType<Derived>();
+	return builder.GetEdmModel()
+}
 {% endhighlight %}
-
-The result is:
+It will generate the below entity type in the resulted EDM document:
 {% highlight xml %}
-
-	<EntityType Name="Trip">
-	  <Key>
-	    <PropertyRef Name="Tripnum" />
-	  </Key>
-	  <Property Name="Tripnum" Type="Edm.Int32" Nullable="false" />
-	  <Property Name="ShareId" Type="Edm.Guid" />
-	  <Property Name="Name" Type="Edm.String" />
-	</EntityType>
+<EntityType Name="Derived">
+  <Key>
+    <PropertyRef Name="Id" />
+  </Key>
+  <Property Name="Id" Type="Edm.Int32" Nullable="false" />
+</EntityType>
 {% endhighlight %}
 
-### ComplexType
-The convention is: a model class without Key property is a complex type. There are 2 ways to create complex type:
+#### Abstract type convention
 
-(1)	Create a class without any ‘id’ or ‘<class name>id’ or [`KeyAttribute`] property, like
-
-{% highlight csharp %}
-
-    public class City
-    {
-        public string Name { get; set; }
-        public string CountryRegion { get; set; }
-        public string Region { get; set; }
-    }
-{% endhighlight %}
-
-(2)	Or add [ComplexType] attribute to a model class: it will remove ‘id’ or ‘<class name>id’ or [Key] properties, the model class will have no entity key, thus becomes a complex type.
+Rule: The Edm type will be marked as abstract if the class is abstract.
 
 {% highlight csharp %}
-
-    [ComplexType]
-    public class PairItem
-    {
-        public int Id { get; set; }
-        public string Value { get; set; }
-    }
-{% endhighlight %}
-
-### Abstract entity
-ODataConventionModelBuilder can generate abstract entity from abstract model class:
-
-{% highlight csharp %}
-
-    public abstract class EventBase
-    {
-        [Key]
-        public string EventIdentifier { get; set; }
-    }
+public abstract class Base
+{
+    public int Id { get; set; }
+}
 {% endhighlight %}
 
 The result is :
 
 {% highlight xml %}
-	
-	<EntityType Name="EventBase" Abstract="true">
-	  <Key>
-	    <PropertyRef Name="EventIdentifier" />
-	  </Key>
-	  <Property Name="EventIdentifier" Type="Edm.String" Nullable="false" />
-	</EntityType>
+<EntityType Name="Base" Abstract="true">
+   <Key>
+     <PropertyRef Name="Id" />
+   </Key>
+   <Property Name="Id" Type="Edm.Int32" Nullable="false" />
+</EntityType>
+{% endhighlight %}
+
+#### Entity key convention
+
+Rule: If one and only one property’s name is ‘Id’ or ‘`<entity class name>`Id’ (case insensitive), it becomes entity key property.
+
+{% highlight csharp %}
+public abstract class Base
+{
+	public int BaseId { get; set; }
+}
+{% endhighlight %}
+
+The result is:
+{% highlight xml %}
+<EntityType Name="Base" Abstract="true">
+  <Key>
+    <PropertyRef Name="BaseId" />
+  </Key>
+  <Property Name="BaseId" Type="Edm.Int32" Nullable="false" />
+</EntityType>
+{% endhighlight %}
+
+#### Key attribute
+
+Rule: The [`KeyAttribute`] specifies key property, it forces a property without 'id' to be Key property. It'll suppress the entity key convention.
+
+{% highlight csharp %}
+public class Trip
+{
+    [Key]
+    public int TripNum { get; set; }	
+	public int Id { get; set; }
+}
+{% endhighlight %}
+
+The result is:
+{% highlight xml %}
+<EntityType Name="Trip">
+  <Key>
+    <PropertyRef Name="TripNum" />
+  </Key>
+  <Property Name="TripNum" Type="Edm.Int32" Nullable="false" />
+  <Property Name="Id" Type="Edm.Int32" Nullable="false" />
+</EntityType>
+{% endhighlight %}
+
+#### ComplexType Attribute Convention
+
+Rule-1: Create a class without any ‘id’ or ‘<class name>id’ or [`KeyAttribute`] property, like
+
+{% highlight csharp %}
+public class City
+{
+	public string Name { get; set; }
+	public string CountryRegion { get; set; }
+	public string Region { get; set; }
+}
+{% endhighlight %}
+
+Rule-2:	Add [ComplexType] attribute to a model class: it will remove ‘id’ or ‘<class name>id’ or [Key] properties, the model class will have no entity key, thus becomes a complex type.
+
+{% highlight csharp %}
+[ComplexType]
+public class PairItem
+{
+	public int Id { get; set; }
+	public string Value { get; set; }
+}
 {% endhighlight %}
 
 
-### DataContract & DataMember
-They select what properties to be serialized & deserialized. The below example shows that ‘SharedId‘ property without [DataMember] attribute is eliminated from the EDM model.
+#### DataContract & DataMember
+Rule: If using DataContract or DataMember, only property with [DataMember] attribute will be added into Edm model.
 
 {% highlight csharp %}
-
-    [DataContract]
-    public class Trip
-    {
-        [DataMember]
-        [Key]
-        public int TripNum { get; set; }
-        public Guid? ShareId { get; set; }  // will be eliminated
-        [DataMember]
-        public string Name { get; set; }
-    }
+[DataContract]
+public class Trip
+{
+	[DataMember]
+	[Key]
+	public int TripNum { get; set; }
+	public Guid? ShareId { get; set; }  // will be eliminated
+	[DataMember]
+	public string Name { get; set; }
+}
 {% endhighlight %}
 
 The resulted EDM document is:
 
 {% highlight xml %}
-
-	<EntityType Name="Trip">
-	  <Key>
-	    <PropertyRef Name="TripNum" />
-	  </Key>
-	  <Property Name="TripNum" Type="Edm.Int32" Nullable="false" />
-	  <Property Name="Name" Type="Edm.String" />
-	</EntityType>
+<EntityType Name="Trip">
+  <Key>
+	<PropertyRef Name="TripNum" />
+  </Key>
+  <Property Name="TripNum" Type="Edm.Int32" Nullable="false" />
+  <Property Name="Name" Type="Edm.String" />
+</EntityType>
 {% endhighlight %}
 
-They can also change namespace and Name in EDM document, if the above DataContract attribute is added with NameSpace:
+They can also change name-space and property name in EDM document. For example, if the above DataContract attribute is added with NameSpace:
 
 {% highlight csharp %}
-
-	[DataContract(Namespace="My.NewNameSpace")]
+[DataContract(Namespace="My.NewNameSpace")]
+public class Trip
+{ 
+   ...
+}
 {% endhighlight %}
 
 The result will become:
 
 {% highlight csharp %}
-
-	<Schema Namespace="My.NewNameSpace">
-	  <EntityType Name="Trip">
-	    <Key>
-	      <PropertyRef Name="TripNum"/>
-	    </Key>
-	    <Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
-	    <Property Name="Name" Type="Edm.String"/>
-	  </EntityType>
-	</Schema>
+<Schema Namespace="My.NewNameSpace">
+  <EntityType Name="Trip">
+	<Key>
+	  <PropertyRef Name="TripNum"/>
+	</Key>
+	<Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
+	<Property Name="Name" Type="Edm.String"/>
+  </EntityType>
+</Schema>
 {% endhighlight %}
 
-### NotMapped
-NotMapped deselects the property to be serialized or deserialized, so to some extent, it can be seen as the converse of DataContract & DataMember. For example, the above if Trip class is changed to the below, it generates exactly the same Trip Entity in EDM document, that is, no ‘SharedId’ property.
+#### NotMapped Attribute Convention
+
+Rule: [NotMapped] deselects the property to be serialized or deserialized, so to some extent, it can be seen as the converse of DataContract & DataMember.
+
+For example, the above if `Trip` class is changed to the below, it generates exactly the same Trip Entity in EDM document, that is, no ‘SharedId’ property.
 
 {% highlight csharp %}
-
-    [DataContract]
-    public class Trip
-    {
-        [DataMember]
-        [Key]
-        public int TripNum { get; set; }
-        [NotMapped]
-        public Guid? ShareId { get; set; }
-        [DataMember]
-        public string Name { get; set; }
-    }	
-{% endhighlight %}
-
-
-{% highlight xml %}
-
-	<EntityType Name="Trip">
-	  <Key>
-	    <PropertyRef Name="TripNum"/>
-	  </Key>
-	  <Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
-	  <Property Name="Name" Type="Edm.String"/>
-	</EntityType>
-{% endhighlight %}
-
-### Required
-It sets property to be Nullable false. The below has [Required] on Name property:
-
-{% highlight csharp %}
-
-    public class Trip
-    {
-        [Key]
-        public int TripNum { get; set; }
-        [NotMapped]
-        public Guid? ShareId { get; set; }
-        [Required]
-        public string Name { get; set; }
-    }
-{% endhighlight %}
-
-Then the result has Nullable=”false” for Name property:
-
-{% highlight xml %}
-
-    <EntityType Name="Trip">
-	  <Key>
-	    <PropertyRef Name="TripNum"/>
-	  </Key>
-	  <Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
-	  <Property Name="Name" Type="Edm.String" Nullable="false"/>
-    </EntityType>
-{% endhighlight %}
-
-
-### ConcurrencyCheck
-It can mark one or more properties for doing optimistic concurrency check on entity updates.
-
-{% highlight csharp %}
-
-    public class Trip
-    {
-        [Key]
-        public int TripNum { get; set; }
-        [NotMapped]
-        public Guid? ShareId { get; set; }
-        [Required]
-        public string Name { get; set; }
-        [ConcurrencyCheck]
-        public string UpdateVersion { get; set; }
-    }
-{% endhighlight %}
-
-
-The expected result should be like the below: (however, because of a bug, as of the post being written, the result is still not correct for OData V4)
-
-{% highlight xml %}
-
-	<EntityType Name="Trip">
-	  <Key>
-	    <PropertyRef Name="TripNum"/>
-	  </Key>
-	  <Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
-	  <Property Name="Name" Type="Edm.String" Nullable="false"/>
-	  <Property Name="UpdateVersion" Type="Edm.String"/>
-	  <Annotation Term="Core.OptimisticConcurrency">
-	    <Collection>
-	      <PropertyPath>UpdateVersion</PropertyPath>
-	    </Collection>
-	  </Annotation>
-	</EntityType>
-{% endhighlight %}
-
-
-### Timestamp
-
-
-{% highlight csharp %}
-
-    public class Trip
-    {
-        [Key]
-        public int TripNum { get; set; }
-        [NotMapped]
-        public Guid? ShareId { get; set; }
-        [Required]
-        public string Name { get; set; }
-        [ConcurrencyCheck]
-        public string UpdateVersion { get; set; }
-        [Timestamp]
-        public string UpdateStamp { get; set; }
-    }
-{% endhighlight %}
-
-The expected result is (again, there is bug preventing it from generating correct annotation now) :
-
-{% highlight xml %}
-
-	<EntityType Name="Trip">
-	  <Key>
-	    <PropertyRef Name="TripNum"/>
-	  </Key>
-	  <Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
-	  <Property Name="Name" Type="Edm.String" Nullable="false"/>
-	  <Property Name="UpdateVersion" Type="Edm.String"/>
-	<Property Name="UpdateStamp" Type="Edm.String"/>
-	  <Annotation Term="Core.OptimisticConcurrency">
-	    <Collection>
-	      <PropertyPath>UpdateVersion</PropertyPath>
-	      <PropertyPath>UpdateStamp</PropertyPath>
-	    </Collection>
-	  </Annotation>
-	</EntityType>
-{% endhighlight %}
-
-
-### IgnoreDataMember
-It has the same effect as `[NotMapped]` attribute. It is able to revert the `[DataMember] `attribute on the property when the model class doesn’t have `[DataContract]` attribute.
-
-### Singleton
-
-{% highlight csharp %}
-
-	builder.Singleton<Person>("Me");
+[DataContract]
+public class Trip
+{
+	[DataMember]
+	[Key]
+	public int TripNum { get; set; }
+	[NotMapped]
+	public Guid? ShareId { get; set; }
+	[DataMember]
+	public string Name { get; set; }
+}	
 {% endhighlight %}
 
 The result is:
-
 {% highlight xml %}
-	
-	<EntityContainer Name="DefaultContainer">
-	<Singleton Name="Me" Type="ODataSamples.WebApiService.Models.Person">
-	</Singleton>
-	</EntityContainer>
+
+<EntityType Name="Trip">
+  <Key>
+	<PropertyRef Name="TripNum"/>
+  </Key>
+  <Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
+  <Property Name="Name" Type="Edm.String"/>
+</EntityType>
 {% endhighlight %}
 
-### EntitySet
+#### Required Attribute Convention
+
+Rule: The property with [Required] attribute will be non-nullable. 
 
 {% highlight csharp %}
 
-	builder.EntitySet<Person>("People");
+public class Trip
+{
+	[Key]
+	public int TripNum { get; set; }
+	[NotMapped]
+	public Guid? ShareId { get; set; }
+	[Required]
+	public string Name { get; set; }
+}
 {% endhighlight %}
 
-The result is:
+Then the result has `Nullable=”false”` for `Name` property:
 
 {% highlight xml %}
-	
-	<EntityContainer Name="DefaultContainer">
-	  <EntitySet Name="People" EntityType="ODataSamples.WebApiService.Models.Person">
-	  </EntitySet>
-	</EntityContainer>
+<EntityType Name="Trip">
+  <Key>
+	<PropertyRef Name="TripNum"/>
+  </Key>
+  <Property Name="TripNum" Type="Edm.Int32" Nullable="false"/>
+  <Property Name="Name" Type="Edm.String" Nullable="false"/>
+</EntityType>
 {% endhighlight %}
 
-### Bound function
-            var personType = builder.EntityType<Person>();
 
-            personType.Function("GetFriendsTrips")
-                .ReturnsCollectionFromEntitySet<Airline>("Airlines")
-                .Parameter<string>("userName");
-The result is:
+#### ConcurrencyCheck Attribute Convention
+Rule: It can mark one or more properties for doing optimistic concurrency check on entity updates.
+
+{% highlight csharp %}
+
+public class Trip
+{
+	[Key]
+	public int TripNum { get; set; }
+	public int Id { get; set; }
+	[ConcurrencyCheck]
+	public string UpdateVersion { get; set; }
+}
+{% endhighlight %}
+
+The expected result should be like the below:
 
 {% highlight xml %}
-	
-	<Function Name="GetFriendsTrips" IsBound="true">
-	  <Parameter Name="bindingParameter" Type="ODataSamples.WebApiService.Models.Person"/>
-	  <Parameter Name="userName" Type="Edm.String" Unicode="false"/>
-	  <ReturnType Type="Collection(ODataSamples.WebApiService.Models.Airline)"/>
-	</Function>
+<EntityType Name="Trip">
+    <Key>
+        <PropertyRef Name="TripNum" />
+    </Key>
+    <Property Name="TripNum" Type="Edm.Int32" Nullable="false" />
+    <Property Name="Id" Type="Edm.Int32" Nullable="false" />
+    <Property Name="UpdateVersion" Type="Edm.String" ConcurrencyMode="Fixed" />
+</EntityType>
 {% endhighlight %}
 
 
-### Bound action
-            var personType = builder.EntityType<Person>();
+#### Timestamp Attribute Convention
+Rule: It's same as [ConcurrencyCheck].
 
-            var shareTripAction = personType.Action("ShareTrip");
-            shareTripAction.Parameter<string>("userName");
-            shareTripAction.Parameter<int>("tripId");
+{% highlight csharp %}
 
-The result is:
+public class Trip
+{
+	[Key]
+	public int TripNum { get; set; }
+	public int Id { get; set; }
+	[Timestamp]
+	public string UpdateVersion { get; set; }
+}
+{% endhighlight %}
+
+The expected result should be like the below:
 
 {% highlight xml %}
-
-	<Action Name="ShareTrip" IsBound="true">
-	  <Parameter Name="bindingParameter" Type="ODataSamples.WebApiService.Models.Person"/>
-	  <Parameter Name="userName" Type="Edm.String" Unicode="false"/>
-	  <Parameter Name="tripId" Type="Edm.Int32" Nullable="false"/>
-	</Action>
+<EntityType Name="Trip">
+    <Key>
+        <PropertyRef Name="TripNum" />
+    </Key>
+    <Property Name="TripNum" Type="Edm.Int32" Nullable="false" />
+    <Property Name="Id" Type="Edm.Int32" Nullable="false" />
+    <Property Name="UpdateVersion" Type="Edm.String" ConcurrencyMode="Fixed" />
+</EntityType>
 {% endhighlight %}
 
 
+#### IgnoreDataMember Attribute Convention
 
-### Unbound function
-            var GetNearestAirportFun = builder.Function("GetNearestAirport");
-            GetNearestAirportFun.Parameter<double>("lat");
-            GetNearestAirportFun.Parameter<double>("lon");
-            GetNearestAirportFun.ReturnsFromEntitySet<Airport>("Airports");
-The result is:
+Rule: It has the same effect as `[NotMapped]` attribute. It is able to revert the `[DataMember] `attribute on the property when the model class doesn’t have `[DataContract]` attribute.
 
+#### NonFilterable & NotFilterable Attribute Convention
+Rule: Property marked with [NonFilterable] or [NotFilterable] will not support `$filter` query option.
+{% highlight csharp %}
+public class QueryLimitCustomer
+{
+	public int Id { get; set; }
+
+	[NonFilterable]
+	[NotFilterable]
+	public string Title { get; set; }
+}
+{% endhighlight %}
+
+Then, if you issue an query option as:
+`~/odata/Customers?$filter=Title eq 'abc'`
+
+You will get the following exception:
+{% highlight csharp %}
+The query specified in the URI is not valid. The property 'Title' cannot be used in the $filter query option.
+{% endhighlight %}
+
+#### NotSortable & Unsortable Attribute Convention
+Rule: Property marked with [NotSortable] or [Unsortable] will not support `$orderby` query option.
+{% highlight csharp %}
+public class QueryLimitCustomer
+{
+	public int Id { get; set; }
+
+	[NotSortable]
+	[Unsortable]	
+	public string Title { get; set; }
+}
+{% endhighlight %}
+
+Then, if you issue an query option as:
+`~/odata/Customers?$orderby=Title
+
+You will get the following exception:
+{% highlight csharp %}
+The query specified in the URI is not valid. The property 'Title' cannot be used in the $orderby query option.
+{% endhighlight %}
+
+#### NotNavigable Attribute Convention
+Rule: Property marked with [NotNavigable] will not support `$select` query option.
+{% highlight csharp %}
+public class QueryLimitCustomer
+{
+	public int Id { get; set; }
+
+	[NotNavigable]	
+	public Address address { get; set; }
+}
+{% endhighlight %}
+
+Then, if you issue an query option as:
+`~/odata/Customers?$select=address
+
+You will get the following exception:
+{% highlight csharp %}
+The query specified in the URI is not valid. The property 'address' cannot be used for navigation."
+{% endhighlight %}
+
+#### NotExpandable Attribute Convention
+Rule: Property marked with [NotExpandable] will not support `$expand` query option.
+{% highlight csharp %}
+public class QueryLimitCustomer
+{
+	public int Id { get; set; }
+
+	[NotExpandable]	
+	public ICollection<QueryLimitOrder> Orders { get; set; }
+}
+{% endhighlight %}
+
+Then, if you issue an query option as:
+`~/odata/Customers?$expand=Orders
+
+You will get the following exception:
+{% highlight csharp %}
+The query specified in the URI is not valid. The property 'Orders' cannot be used in the $expand query option.
+{% endhighlight %}
+
+#### NotCountable Attribute Convention
+Rule: Property marked with [NotCountable] will not support `$count` query option.
+{% highlight csharp %}
+public class QueryLimitCustomer
+{
+	public int Id { get; set; }
+
+	[NotCountable]	
+	public ICollection<Address> Addresses { get; set; }
+}
+{% endhighlight %}
+
+Then, if you issue an query option as:
+`~/odata/Customers(1)/Addresses?$count=true
+
+You will get the following exception:
+{% highlight csharp %}
+The query specified in the URI is not valid. The property 'Addresses' cannot be used for $count.
+{% endhighlight %}
+
+#### ForeignKey Attribute Convention
+
+Rule: Property marked with [ForeignKey] will be used to build referential constraint.
+
+{% highlight csharp %}
+public class ForeignCustomer
+{
+	public int ForeignCustomerId { get; set; }
+	public int OtherCustomerKey { get; set; }
+	public IList<ForeignOrder> Orders { get; set; }
+}
+
+public class ForeignOrder
+{
+	public int ForeignOrderId { get; set; }
+	public int CustomerId { get; set; }
+
+	[ForeignKey("CustomerId")]
+	public ForeignCustomer Customer { get; set; }
+}
+{% endhighlight %}
+
+You will get the following result:
 {% highlight xml %}
-
-	<Function Name="GetNearestAirport">
-	  <Parameter Name="lat" Type="Edm.Double" Nullable="false"/>
-	  <Parameter Name="lon" Type="Edm.Double" Nullable="false"/>
-	  <ReturnType Type="ODataSamples.WebApiService.Models.Airport"/>
-	</Function>
-	
-	<FunctionImport Name="GetNearestAirport" Function="ODataSamples.WebApiService.Models.GetNearestAirport" EntitySet="Airports" IncludeInServiceDocument="true"/>
+<EntityType Name="ForeignOrder">
+<Key>
+  <PropertyRef Name="ForeignOrderId" />
+</Key>
+<Property Name="ForeignOrderId" Type="Edm.Int32" Nullable="false" />
+<Property Name="CustomerId" Type="Edm.Int32" />
+<NavigationProperty Name="Customer" Type="WebApiDocNS.ForeignCustomer">
+  <ReferentialConstraint Property="CustomerId" ReferencedProperty="ForeignCustomerId" />
+</NavigationProperty>
+</EntityType>
 {% endhighlight %}
 
+[ForeignKey] can also put on dependent property. for example:
+{% highlight csharp %}
+public class ForeignOrder
+{
+	public int ForeignOrderId { get; set; }
+	
+	[ForeignKey("Customer")]
+	public int CustomerId { get; set; }
+	public ForeignCustomer Customer { get; set; }
+}
+{% endhighlight %}
 
-### Unbound action
+It'll get the same result.
 
-            var checkNearestAirportAction = builder.Action("CheckNearestAirport");
-            checkNearestAirportAction.Parameter<double>("lat");
-            checkNearestAirportAction.Parameter<double>("lon");
-The result is :
+#### ActionOnDelete Attribute Convention
 
+Rule: Property marked with [ActionOnDelete] will be used to build referential constraint action on delete.
+
+{% highlight csharp %}
+public class ForeignCustomer
+{
+	public int ForeignCustomerId { get; set; }
+	public int OtherCustomerKey { get; set; }
+	public IList<ForeignOrder> Orders { get; set; }
+}
+
+public class ForeignOrder
+{
+	public int ForeignOrderId { get; set; }
+	public int CustomerId { get; set; }
+
+	[ForeignKey("CustomerId")]
+	[ActionOnDelete(EdmOnDeleteAction.Cascade)]
+	public ForeignCustomer Customer { get; set; }
+}
+{% endhighlight %}
+
+You will get the following result:
 {% highlight xml %}
-	
-	<Action Name="CheckNearestAirport">
-	  <Parameter Name="lat" Type="Edm.Double" Nullable="false"/>
-	  <Parameter Name="lon" Type="Edm.Double" Nullable="false"/>
-	</Action>
-	
-	<ActionImport Name="CheckNearestAirport" Action="ODataSamples.WebApiService.Models.CheckNearestAirport"/>
+<EntityType Name="ForeignOrder">
+<Key>
+  <PropertyRef Name="ForeignOrderId" />
+</Key>
+<Property Name="ForeignOrderId" Type="Edm.Int32" Nullable="false" />
+<Property Name="CustomerId" Type="Edm.Int32" />
+<NavigationProperty Name="Customer" Type="WebApiDocNS.ForeignCustomer">
+  <OnDelete Action="Cascade" />
+  <ReferentialConstraint Property="CustomerId" ReferencedProperty="ForeignCustomerId" />
+</NavigationProperty>
+</EntityType>
 {% endhighlight %}
 
+
+#### ForeignKeyDiscovery Convention
+
+Rule: A convention used to discover foreign key properties if there is no any foreign key configured on the navigation property.
+      The basic rule to discover the foreign key is: with the same property type and follow up the naming convention. 
+      The naming convention is:
+      1) "Principal class name + principal key name" equals the dependent property name
+          For example: Customer (Id) <--> Order (CustomerId)
+     2) or "Principal key name" equals the dependent property name.
+          For example: Customer (CustomerId) <--> Order (CustomerId)
+		  
+{% highlight csharp %}  
+public class PrincipalEntity
+{
+	public string Id { get; set; }
+}
+
+public class DependentEntity
+{
+	public int Id { get; set; }
+
+	public string PrincipalEntityId { get; set; }
+	public PrincipalEntity Principal { get; set; }
+}		  
+{% endhighlight %}
+
+You will get the following result:
+{% highlight xml %}
+<EntityType Name="PrincipalEntity">
+<Key>
+  <PropertyRef Name="Id" />
+</Key>
+<Property Name="Id" Type="Edm.String" Nullable="false" />
+</EntityType>
+<EntityType Name="DependentEntity">
+<Key>
+  <PropertyRef Name="Id" />
+</Key>
+<Property Name="Id" Type="Edm.Int32" Nullable="false" />
+<Property Name="PrincipalEntityId" Type="Edm.String" />
+<NavigationProperty Name="Principal" Type="WebApiDocNS.PrincipalEntity">
+
+  <ReferentialConstraint Property="PrincipalEntityId" ReferencedProperty="Id" />
+</NavigationProperty>
+</EntityType>
+{% endhighlight %}	
+
+  
 
