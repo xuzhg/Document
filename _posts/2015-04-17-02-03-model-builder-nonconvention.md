@@ -10,7 +10,7 @@ Let's see how to build the customer-order business model by `ODataModelBuilder`.
 
 ### CLR Models
 
-Non-convention model builder is based on CLR classes to build the Edm Model. The customer-oder business CLR classes are present in abstract section.
+Non-convention model builder is based on CLR classes to build the Edm Model. The customer-order business CLR classes are present in abstract section.
 
 ### Enum Type
 
