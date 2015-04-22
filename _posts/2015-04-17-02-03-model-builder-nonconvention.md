@@ -5,16 +5,16 @@ description: "convention model builder"
 category: "2. Defining the model"
 ---
 
-To build an Edm Model using non-convention model builder is to create an `IEdmModel` object by directly call fluent APIs of `ODataModelBuilder`. The developer should take all responsibility to add all Edm types, operations, associations, etc into the data model one by one.
-Let's see how to build the customer-order business model by `ODataModelBuilder`.
+To build an Edm model using non-convention model builder is to create an `IEdmModel` object by directly call fluent APIs of `ODataModelBuilder`. The developer should take all responsibility to add all Edm types, operations, associations, etc into the data model one by one.
+Let's see how to build the Ccustomer-Order* business model by `ODataModelBuilder`.
 
 ### CLR Models
 
-Non-convention model builder is based on CLR classes to build the Edm Model. The customer-order business CLR classes are present in abstract section.
+Non-convention model builder is based on CLR classes to build the Edm Model. The *Customer-Order* business CLR classes are present in abstract section.
 
 ### Enum Type
 
-The following codes are used to add an Enum type:
+The following codes are used to add an Enum type **`Color`**:
 {% highlight csharp %}
 var color = builder.EnumType<Color>();
 color.Member(Color.Red);
@@ -34,7 +34,7 @@ It will generate the below metadata document:
 ### Complex Type
 
 #### Basic Complex Type
-The following codes are used to add a complex type:
+The following codes are used to add a complex type **`Address`**:
 {% highlight csharp %}
 var address = builder.ComplexType<Address>();
 address.Property(a => a.Country);
@@ -51,7 +51,7 @@ It will generate the below metadata document:
 
 #### Derived Complex type
 
-The following codes are used to add a derived complex type:
+The following codes are used to add a derived complex type **`SubAddress`**:
 {% highlight csharp %}
 var subAddress = builder.ComplexType<SubAddress>().DerivesFrom<Address>();
 subAddress.Property(s => s.Street);
@@ -88,7 +88,7 @@ public class Address
 {
     public string Country { get; set; }
     public string City { get; set; }
-    **public IDictionary<string, object> Dynamics { get; set; }**
+    public IDictionary<string, object> Dynamics { get; set; }
 }
 {% endhighlight %}
 
@@ -107,13 +107,13 @@ It will generate the below metadata document:
   <Property Name="City" Type="Edm.String" />
 </ComplexType>
 {% endhighlight %}
-You can find that the complex type `Address` only has two properties, while it has `OpenType="true"` attribute.
+You can find that the complex type **`Address`** only has two properties, while it has `OpenType="true"` attribute.
 
 ### Entity Type
 
 #### Basic Entity Type
 
-The following codes are used to add two entity types:
+The following codes are used to add two entity types **`Customer` & `Order`**:
 {% highlight csharp %}
 var customer = builder.EntityType<Customer>();
 customer.HasKey(c => c.CustomerId);
@@ -170,7 +170,7 @@ public class Customer
     public int CustomerId { get; set; }
     public Address Location { get; set; }
     public IList<Order> Orders { get; set; }
-    **public IDictionary<string, object> Dynamics { get; set; }**
+    public IDictionary<string, object> Dynamics { get; set; }
 }
 {% endhighlight %}
 
@@ -194,7 +194,7 @@ It will generate the below metadata document:
     <NavigationProperty Name="Orders" Type="Collection(WebApiDocNS.Order)" />
 </EntityType>
 {% endhighlight %}
-You can find that the entity type `Customer` only has three properties, while it has `OpenType="true"` attribute.
+You can find that the entity type **`Customer`** only has three properties, while it has `OpenType="true"` attribute.
 
 ### Entity Container
 
@@ -220,7 +220,7 @@ Besides, you can call `Singleton<T>()` to add singleton into entity container.
 
 ### Function
 
-It's very simple to build function (bound & unbound) in Web API OData. The following codes define two functions. The first is bind to customer, the second is unbound.
+It's very simple to build **function (bound & unbound)** in Web API OData. The following codes define two functions. The first is bind to **`Customer`**, the second is unbound.
 {% highlight csharp %}
 var function = customer.Function("BoundFunction").Returns<string>();
 function.Parameter<int>("value");
@@ -253,7 +253,7 @@ Besides, Web API OData will automatically add function imports for all unbound f
 
 ### Action
 
-Same as function, it's also very simple to build action (bound & unbound) in Web API OData. The following codes define two actions. The first is bind to collection of customer, the second is unbound.
+Same as function, it's also very simple to build **action (bound & unbound)** in Web API OData. The following codes define two actions. The first is bind to collection of **`Customer`**, the second is unbound.
 {% highlight csharp %}
 var action = customer.Collection.Action("BoundAction");
 action.Parameter<int>("value");
@@ -289,59 +289,59 @@ Let's put all codes together:
 {% highlight csharp %}
 public static IEdmModel GetEdmModel()
 {
-	var builder = new ODataModelBuilder();
+    var builder = new ODataModelBuilder();
 
-	// enum type
-	var color = builder.EnumType<Color>();
-	color.Member(Color.Red);
-	color.Member(Color.Blue);
-	color.Member(Color.Green);
+    // enum type
+    var color = builder.EnumType<Color>();
+    color.Member(Color.Red);
+    color.Member(Color.Blue);
+    color.Member(Color.Green);
 
-	// complex type
-	// var address = builder.ComplexType<Address>().Abstract();
-	var address = builder.ComplexType<Address>();
-	address.Property(a => a.Country);
-	address.Property(a => a.City);
-	// address.HasDynamicProperties(a => a.Dynamics);
+    // complex type
+    // var address = builder.ComplexType<Address>().Abstract();
+    var address = builder.ComplexType<Address>();
+    address.Property(a => a.Country);
+    address.Property(a => a.City);
+    // address.HasDynamicProperties(a => a.Dynamics);
 
-	var subAddress = builder.ComplexType<SubAddress>().DerivesFrom<Address>();
-	subAddress.Property(s => s.Street);
+    var subAddress = builder.ComplexType<SubAddress>().DerivesFrom<Address>();
+    subAddress.Property(s => s.Street);
 
-	// entity type
-	// var customer = builder.EntityType<Customer>().Abstract();
-	var customer = builder.EntityType<Customer>();
-	customer.HasKey(c => c.CustomerId);
-	customer.ComplexProperty(c => c.Location);
-	customer.HasMany(c => c.Orders);
-	// customer.HasDynamicProperties(c => c.Dynamics);
+    // entity type
+    // var customer = builder.EntityType<Customer>().Abstract();
+    var customer = builder.EntityType<Customer>();
+    customer.HasKey(c => c.CustomerId);
+    customer.ComplexProperty(c => c.Location);
+    customer.HasMany(c => c.Orders);
+    // customer.HasDynamicProperties(c => c.Dynamics);
 
-	var order = builder.EntityType<Order>();
-	order.HasKey(o => o.OrderId);
-	order.Property(o => o.Token);
+    var order = builder.EntityType<Order>();
+    order.HasKey(o => o.OrderId);
+    order.Property(o => o.Token);
 
-	// entity set
-	builder.EntitySet<Customer>("Customers");
-	builder.EntitySet<Order>("Orders");
+    // entity set
+    builder.EntitySet<Customer>("Customers");
+    builder.EntitySet<Order>("Orders");
 
-	// function
-	var function = customer.Function("BoundFunction").Returns<string>();
-	function.Parameter<int>("value");
-	function.Parameter<Address>("address");
+    // function
+    var function = customer.Function("BoundFunction").Returns<string>();
+    function.Parameter<int>("value");
+    function.Parameter<Address>("address");
 
-	function = builder.Function("UnBoundFunction").Returns<int>();
-	function.Parameter<Color>("color");
-	function.EntityParameter<Order>("order");
+    function = builder.Function("UnBoundFunction").Returns<int>();
+    function.Parameter<Color>("color");
+    function.EntityParameter<Order>("order");
 
-	// action
-	var action = customer.Collection.Action("BoundAction");
-	action.Parameter<int>("value");
-	action.CollectionParameter<Address>("addresses");
+    // action
+    var action = customer.Collection.Action("BoundAction");
+    action.Parameter<int>("value");
+    action.CollectionParameter<Address>("addresses");
 
-	action = builder.Action("UnBoundAction").Returns<int>();
-	action.Parameter<Color>("color");
-	action.CollectionEntityParameter<Order>("orders");
+    action = builder.Action("UnBoundAction").Returns<int>();
+    action.Parameter<Color>("color");
+    action.CollectionEntityParameter<Order>("orders");
 
-	return builder.GetEdmModel();
+    return builder.GetEdmModel();
 }
 {% endhighlight %}
 
