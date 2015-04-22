@@ -5,7 +5,7 @@ description: "convention model builder"
 category: "2. Defining the model"
 ---
 
-In the previous two sections, we walk you through the required aspects to build an Edm Model by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** or leveraging `ODataModelBuilder` fluent API in WebApi OData. 
+In the previous two sections, we walk you through the required aspects to build an Edm model by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** or leveraging `ODataModelBuilder` fluent API in WebApi OData. 
 
 Obvious, there are many codes you should add to develop a simple *Customer-Order* business model. However, Web API OData also provides a simple method by using `ODataConventionModelBuilder` to do the same thing. It's called **convention model builder** and can extremely reduce your workload.
 
@@ -84,7 +84,7 @@ It will generate the below metadata document:
 
 ### Conventions
 
-Wow, how the convention model builder do that! Actually, convention model builder uses a set of **pre-defined** rules (called conventions) to achieve this. 
+Wow, how the convention model builder do that! Actually, convention model builder uses a set of **pre-defined** rules (called *conventions*) to achieve this. 
 If you open the source code for [`ODataConventionModelBuilder`](https://github.com/OData/WebApi/blob/master/OData/src/System.Web.OData/OData/Builder/ODataConventionModelBuilder.cs), You can find the following codes at the beginning of the `ODataConventionModelBuilder` class:
 {% highlight csharp %}
 private static readonly List<IConvention> _conventions = new List<IConvention>
