@@ -5,12 +5,13 @@ description: "convention model builder"
 category: "2. Defining the model"
 ---
 
-As mentioned in previous section, to build Edm Model explicitly is to create an `IEdmModel` object directly using ODatalib API. The Edm model built by this method is called **type-less model**, or **week type model**, or just **un-typed model**.
-Let's see how to build the customer-order business model. 
+As mentioned in previous section, to build Edm model explicitly is to create an `IEdmModel` object directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** API. The Edm model built by this method is called **type-less model**, or **week type model**, or just **un-typed model**.
+
+Let's see how to build the *Customer-Order* business model.
 
 ### Enum Type
 
-We can use `EdmEnumType` to define an Enum type as:
+We can use `EdmEnumType` to define an Enum type **`Color`** as:
 {% highlight csharp %}
 EdmEnumType color = new EdmEnumType("WebApiDocNS", "Color");
 color.AddMember(new EdmEnumMember(color, "Red", new EdmIntegerConstant(0)));
@@ -32,7 +33,7 @@ It will generate the below metadata document:
 
 #### Basic Complex Type
 
-We can use `EdmComplexType` to define a complex type as:
+We can use `EdmComplexType` to define a complex type **`Address`** as:
 {% highlight csharp %}
 EdmComplexType address = new EdmComplexType("WebApiDocNS", "Address");
 address.AddStructuralProperty("Country", EdmPrimitiveTypeKind.String);
@@ -50,7 +51,7 @@ It will generate the below metadata document:
 
 #### Derived Complex type
 
-We can set the base type in construct to define a derived complex type as:
+We can set the base type in construct to define a derived complex type **`SubAddress`** as:
 {% highlight csharp %}
 EdmComplexType subAddress = new EdmComplexType("WebApiDocNS", "SubAddress", address);
 subAddress.AddStructuralProperty("Street", EdmPrimitiveTypeKind.String);
@@ -86,7 +87,7 @@ It will generate the below metadata document:
 
 #### Basic Entity Type
 
-We can use `EdmEntityType` to define an entity type as:
+We can use `EdmEntityType` to define two entity types **`Customer` & `Order`** as:
 {% highlight csharp %}
 EdmEntityType customer = new EdmEntityType("WebApiDocNS", "Customer");
 customer.AddKeys(customer.AddStructuralProperty("CustomerId", EdmPrimitiveTypeKind.Int32));
@@ -119,16 +120,16 @@ It will generate the below metadata document:
 
 #### Derived Entity type
 
-We can set the base type in construct to define a derived entity type as:
+We can set the base type in construct to define a derived entity type **`VipCustomer`** as:
 {% highlight csharp %}
-EdmEntityType vipCustomer = new EdmEntityType("WebApiDocNS", "vipCustomer", customer);
+EdmEntityType vipCustomer = new EdmEntityType("WebApiDocNS", "VipCustomer", customer);
 vipCustomer.AddStructuralProperty("FavoriteColor", new EdmEnumTypeReference(color, isNullable: false));
 model.AddElement(vipCustomer);
 {% endhighlight %}
 
 It will generate the below metadata document:
 {% highlight xml %}
-<EntityType Name="vipCustomer" BaseType="WebApiDocNS.Customer">
+<EntityType Name="VipCustomer" BaseType="WebApiDocNS.Customer">
     <Property Name="FavoriteColor" Type="WebApiDocNS.Color" Nullable="false" />
 </EntityType>
 {% endhighlight %}
@@ -153,7 +154,7 @@ It will generate the below metadata document:
 
 ### Default Entity Container
 
-Each model MUST define at most one entity container, in which entity sets are defined. For example:
+Each model MUST define at most one entity container, in which entity sets, singletons and operation imports are defined. For example:
 
 {% highlight csharp %}
 EdmEntityContainer container = new EdmEntityContainer("WebApiDocNS", "Container");
@@ -215,14 +216,16 @@ Second, it will add a new item in the entity container for **Customers** entity 
 
 ### Function
 
-We define two functions. One is bound, the other is unbound as:
+Let's define two functions. One is bound, the other is unbound as:
 {% highlight csharp %}
 IEdmTypeReference stringType = EdmCoreModel.Instance.GetPrimitive(EdmPrimitiveTypeKind.String, isNullable: false);
 IEdmTypeReference intType = EdmCoreModel.Instance.GetPrimitive(EdmPrimitiveTypeKind.Int32, isNullable: false);
+// Bound
 EdmFunction getFirstName = new EdmFunction("WebApiDocNS", "GetFirstName", stringType, isBound: true, entitySetPathExpression: null, isComposable: false);
 getFirstName.AddParameter("entity", new EdmEntityTypeReference(customer, false));
 model.AddElement(getFirstName);
 
+// Unbound
 EdmFunction getNumber = new EdmFunction("WebApiDocNS", "GetOrderCount", intType, isBound: false, entitySetPathExpression: null, isComposable: false);
 model.AddElement(getNumber);
 {% endhighlight %}
@@ -240,12 +243,14 @@ It will generate the below metadata document:
 
 ### Action
 
-We define two actions. One is bound, the other is unbound as:
+Let's define two actions. One is bound, the other is unbound as:
 {% highlight csharp %}
+// Bound
 EdmAction calculate = new EdmAction("WebApiDocNS", "CalculateOrderPrice", returnType: null, isBound: true, entitySetPathExpression: null);
 calculate.AddParameter("entity", new EdmEntityTypeReference(customer, false));
 model.AddElement(calculate);
 
+// Unbound
 EdmAction change = new EdmAction("WebApiDocNS", "ChangeCustomerById", returnType: null, isBound: false, entitySetPathExpression: null);
 change.AddParameter("Id", intType);
 model.AddElement(change);
@@ -316,7 +321,7 @@ public static IEdmModel GetEdmModel()
     customer.AddStructuralProperty("Location", new EdmComplexTypeReference(address, isNullable: true));
     model.AddElement(customer);
 
-    EdmEntityType vipCustomer = new EdmEntityType("WebApiDocNS", "vipCustomer", customer);
+    EdmEntityType vipCustomer = new EdmEntityType("WebApiDocNS", "VipCustomer", customer);
     vipCustomer.AddStructuralProperty("FavoriteColor", new EdmEnumTypeReference(color, isNullable: false));
     model.AddElement(vipCustomer);
 
@@ -394,7 +399,7 @@ And the final XML will be:
         <Property Name="Location" Type="WebApiDocNS.Address" />
         <NavigationProperty Name="Orders" Type="Collection(WebApiDocNS.Order)" />
       </EntityType>
-      <EntityType Name="vipCustomer" BaseType="WebApiDocNS.Customer">
+      <EntityType Name="VipCustomer" BaseType="WebApiDocNS.Customer">
         <Property Name="FavoriteColor" Type="WebApiDocNS.Color" Nullable="false" />
       </EntityType>
       <EntityType Name="Order">
@@ -406,7 +411,6 @@ And the final XML will be:
       </EntityType>
       <Function Name="GetFirstName" IsBound="true">
         <Parameter Name="entity" Type="WebApiDocNS.Customer" Nullable="false" />
-
         <ReturnType Type="Edm.String" Nullable="false" />
       </Function>
       <Function Name="GetOrderCount">
@@ -414,7 +418,6 @@ And the final XML will be:
       </Function>
       <Action Name="CalculateOrderPrice" IsBound="true">
         <Parameter Name="entity" Type="WebApiDocNS.Customer" Nullable="false" />
-
       </Action>
       <Action Name="ChangeCustomerById">
         <Parameter Name="Id" Type="Edm.Int32" Nullable="false" />
