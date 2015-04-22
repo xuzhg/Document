@@ -5,20 +5,21 @@ description: "convention model builder"
 category: "2. Defining the model"
 ---
 
-In the previous two sections, we walk you through the required aspects to build an Edm Model by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** or leveraging WebApi OData’s ODataModelBuilder’s fluent API. 
+In the previous two sections, we walk you through the required aspects to build an Edm Model by directly using **[ODatalib](https://www.nuget.org/packages/Microsoft.OData.Core/)** or leveraging `ODataModelBuilder` fluent API in WebApi OData. 
 
-Obvious, there are many lines you should code to develop a simple *Customer-Order* business model. However, Web API OData also provides a simple method by using `ODataConventionModelBuilder` to do the same thing. It's called convention model builder and can extremely reduce your workload.
- 
+Obvious, there are many codes you should add to develop a simple *Customer-Order* business model. However, Web API OData also provides a simple method by using `ODataConventionModelBuilder` to do the same thing. It's called **convention model builder** and can extremely reduce your workload.
 
-Convention model builder uses a set of pre-defined rules (called conventions) to help model builder identify Edm types, keys, associations, etc automatically, and add them into the final Edm model. In this section, we will go through all conventions used in convention model builder.
+Convention model builder uses a set of pre-defined rules (called *conventions*) to help model builder identify Edm types, keys, associations, relationships, etc automatically, and build them into the final Edm data model.
+
+In this section, we will go through all conventions used in convention model builder. First, let's see how to build the Edm model using `ODataConventionModelBuilder`.
 
 ### CLR Models
 
-We also use the *Customer-Order* business model present in abstract section.
+We also use the *Customer-Order* business model presented in abstract section.
 
 ### Build the Edm Model
 
-The following codes can add all related entity types, complex types, enum type and the corresponding entity sets in to Edm model:
+The following codes can add all related entity types, complex types, enum type and the corresponding entity sets into the Edm model:
 {% highlight csharp %}
 public static IEdmModel GetConventionModel()
 {
@@ -118,7 +119,7 @@ private static readonly List<IConvention> _conventions = new List<IConvention>
 	new FunctionLinkGenerationConvention(),
 };
 {% endhighlight %}
-Where lists the conventions wrapped in convention model builder. However, in `ODataConventionModelBuilder`, there are some conventions which can't be clearly listed as a convention. Let's walk you through these conventions one by one with some relevant attributes & annotations to illustrate the convention model builder.
+Where lists the conventions wrapped in convention model builder. However, in `ODataConventionModelBuilder`, there are some conventions which can't be clearly listed. Let's walk you through these conventions one by one with some relevant attributes & annotations to illustrate the convention model builder.
 
 #### Type Inheritance Identify Convention
 
@@ -175,6 +176,7 @@ It will generate the below entity type in the resulted EDM document:
   <Property Name="Id" Type="Edm.Int32" Nullable="false" />
 </EntityType>
 {% endhighlight %}
+There is no `Base` entity type existed.
 
 #### Abstract type convention
 
@@ -297,7 +299,7 @@ The resulted EDM document is:
 </EntityType>
 {% endhighlight %}
 
-They can also change name-space and property name in EDM document. For example, if the above DataContract attribute is added with NameSpace:
+You can also change name-space and property name in EDM document. For example, if the above DataContract attribute is added with NameSpace:
 
 {% highlight csharp %}
 [DataContract(Namespace="My.NewNameSpace")]
@@ -639,9 +641,9 @@ You will get the following result:
 Rule: A convention used to discover foreign key properties if there is no any foreign key configured on the navigation property.
       The basic rule to discover the foreign key is: with the same property type and follow up the naming convention. 
       The naming convention is:
-      1) "Principal class name + principal key name" equals the dependent property name
+      1. The **"Principal class name + principal key name"** equals the **dependent property name**
           For example: Customer (Id) <--> Order (CustomerId)
-     2) or "Principal key name" equals the dependent property name.
+      2. or the **"Principal key name"** equals the **dependent property name**.
           For example: Customer (CustomerId) <--> Order (CustomerId)
 		  
 {% highlight csharp %}  
